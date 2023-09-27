@@ -2,17 +2,6 @@
 
 yet another site generator using pandoc. This one lets you use the [mustache](http://mustache.github.io/mustache.5.html) templating language to do some cool magic
 
-# Usage:
-
-```bash
-# prints this documentation
-python build.py --help 
-# prints the default config as yaml (without comments)
-python build.py --default-cfg
-# builds according to the config
-python build.py <config_path>
-```
-
 see the [example website](https://mivanit.github.io/pandoc-sitegen/)
 
 ## create a config file
@@ -191,13 +180,13 @@ By [Michael Ivanitskiy](mailto:mivanits@umich.edu)
 
 """
 
-
+from argparse import ArgumentParser
+import argparse
 import json
 import time
 from typing import *
 import subprocess
 import os
-import sys
 from pathlib import Path
 # from distutils.dir_util import copy_tree
 from shutil import copytree
@@ -656,21 +645,37 @@ def gen_all_pages(CFG: Config) -> None:
 		f.write(str(time.time()))
 
 
-def main(argv: List[str]) -> None:
+def main() -> None:
+	parser = ArgumentParser(
+		formatter_class=argparse.RawDescriptionHelpFormatter,
+		description=__doc__,
+	)
+	parser.add_argument(
+		"--default-cfg",
+		default=False,
+		action="store_true",
+		help="Print the default config as YAML without comments",
+	)
+	parser.add_argument(
+		"--rebuild",
+		default=False,
+		action="store_true",
+		help="Don't use artifacts from last build",
+	)
+	parser.add_argument(
+		"config-file",
+		type=str,
+		help="Build according to the provided config file",
+		nargs='?',
+	)
+	args = parser.parse_args()
 
-	# check for help
-	if any((x in argv) for x in ["-h", "--help", "--readme", "--README"]):
-		print(__doc__)
-		exit(0)
-
-	# check if we want to print the default config
-	if "--default-cfg" in argv:
+	if args.default_cfg:
 		print(yaml.dump(DEFAULT_CONFIG))
 		exit(0)
 
 	# load the config file
-	config_file: str = argv[1]
-	CFG: Config = yaml.full_load(open(config_file, "r", encoding="utf-8"))
+	CFG: Config = yaml.full_load(open(args.config_file, "r", encoding="utf-8"))
 
 	# merge the config with the default config
 	CFG = {
@@ -682,10 +687,8 @@ def main(argv: List[str]) -> None:
 	update_extras(CFG)
 
 	# check for force rebuild
-	if "--rebuild" in argv:
+	if args.rebuild:
 		CFG["smart_rebuild"] = False
-
-	# TODO: checking for unknown args
 
 	print(f"# Using config file '{config_file}', loaded data:")
 	print("-" * 3)
@@ -726,4 +729,4 @@ def main(argv: List[str]) -> None:
 
 
 if __name__ == "__main__":
-	main(sys.argv)
+	main()
